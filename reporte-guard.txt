@@ -1,0 +1,5 @@
+\\?\C:\Users\Cyborg\Downloads\diplo2\proyecto-opentofu-asistencia\cloudformation\anidados\servidor.yaml Status = PASS
+PASS rules
+seguridad.guard/imdsv2_obligatorio    PASS
+seguridad.guard/discos_cifrados       PASS
+---

@@ -51,6 +51,10 @@ Resources:
           ToPort: 443
           CidrIp: 0.0.0.0/0
           Description: HTTPS publico
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+          Description: Salida explicita para actualizaciones y servicios externos
       Tags:
         - Key: Name
           Value: !Sub "${Proyecto}-${Ambiente}-frontend-sg"
@@ -80,6 +84,10 @@ Resources:
           ToPort: 443
           SourceSecurityGroupId: !Ref FrontendSG
           Description: HTTPS desde frontend
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+          Description: Salida explicita para actualizaciones y servicios externos
       Tags:
         - Key: Name
           Value: !Sub "${Proyecto}-${Ambiente}-backend-sg"

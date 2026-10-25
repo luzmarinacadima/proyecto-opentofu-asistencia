@@ -1,0 +1,9 @@
+let instancias = Resources.*[ Type == 'AWS::EC2::Instance' ]
+
+rule imdsv2_obligatorio when %instancias !empty {
+    %instancias.Properties.MetadataOptions.HttpTokens == 'required'
+}
+
+rule discos_cifrados when %instancias !empty {
+    %instancias.Properties.BlockDeviceMappings[*].Ebs.Encrypted == true
+}
