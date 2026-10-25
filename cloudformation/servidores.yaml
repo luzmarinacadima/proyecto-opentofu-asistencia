@@ -80,6 +80,9 @@ Resources:
       InstanceType: !Ref TipoInstancia
       KeyName: !Ref LlaveSSH
       SecurityGroupIds: [!GetAtt FrontendSG.GroupId]
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs: { VolumeSize: 20, VolumeType: gp3, Encrypted: true }
@@ -99,6 +102,9 @@ Resources:
       InstanceType: !Ref TipoInstancia
       KeyName: !Ref LlaveSSH
       SecurityGroupIds: [!GetAtt BackendSG.GroupId]
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs: { VolumeSize: 20, VolumeType: gp3, Encrypted: true }

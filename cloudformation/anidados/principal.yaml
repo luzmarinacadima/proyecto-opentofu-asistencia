@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Plantilla principal para la red, seguridad y servidores de AsistencIAU.
+
+Parameters:
+  Proyecto:
+    Type: String
+    Default: asistencia
+    Description: Nombre del proyecto usado en nombres y etiquetas
+  Ambiente:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, qa, prod]
+    Description: Ambiente a desplegar
+  LlavePublica:
+    Type: String
+    Description: Contenido de la clave SSH publica del administrador
+  UbuntuAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
+    Description: Imagen Ubuntu 24.04 oficial
+  AdminCidr:
+    Type: String
+    Description: IP publica del administrador en formato CIDR /32 para SSH
+
+Resources:
+  RedStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./red.yaml
+      Parameters:
+        Proyecto: !Ref Proyecto
+        Ambiente: !Ref Ambiente
+
+  SeguridadStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./seguridad.yaml
+      Parameters:
+        Proyecto: !Ref Proyecto
+        Ambiente: !Ref Ambiente
+        LlavePublica: !Ref LlavePublica
+        VpcId: !GetAtt RedStack.Outputs.VpcId
+        AdminCidr: !Ref AdminCidr
+
+  FrontendStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./servidor.yaml
+      Parameters:
+        Proyecto: !Ref Proyecto
+        Ambiente: !Ref Ambiente
+        NombreRol: frontend
+        UbuntuAmi: !Ref UbuntuAmi
+        SubnetId: !GetAtt RedStack.Outputs.PublicSubnetId
+        KeyName: !GetAtt SeguridadStack.Outputs.KeyName
+        SecurityGroupId: !GetAtt SeguridadStack.Outputs.FrontendSecurityGroupId
+
+  BackendStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./servidor.yaml
+      Parameters:
+        Proyecto: !Ref Proyecto
+        Ambiente: !Ref Ambiente
+        NombreRol: backend
+        UbuntuAmi: !Ref UbuntuAmi
+        SubnetId: !GetAtt RedStack.Outputs.PublicSubnetId
+        KeyName: !GetAtt SeguridadStack.Outputs.KeyName
+        SecurityGroupId: !GetAtt SeguridadStack.Outputs.BackendSecurityGroupId
+
+Outputs:
+  IpFrontend:
+    Description: IP publica del servidor frontend
+    Value: !GetAtt FrontendStack.Outputs.PublicIp
+    Export:
+      Name: !Sub "${Proyecto}-${Ambiente}-ip-frontend"
+  IpBackend:
+    Description: IP publica del servidor backend
+    Value: !GetAtt BackendStack.Outputs.PublicIp
+    Export:
+      Name: !Sub "${Proyecto}-${Ambiente}-ip-backend"
+  FrontendInstanceId:
+    Description: Identificador de la instancia frontend
+    Value: !GetAtt FrontendStack.Outputs.InstanceId
+    Export:
+      Name: !Sub "${Proyecto}-${Ambiente}-instance-frontend"
+  BackendInstanceId:
+    Description: Identificador de la instancia backend
+    Value: !GetAtt BackendStack.Outputs.InstanceId
+    Export:
+      Name: !Sub "${Proyecto}-${Ambiente}-instance-backend"

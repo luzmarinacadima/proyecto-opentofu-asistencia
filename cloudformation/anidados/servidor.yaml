@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Plantilla reutilizable para una instancia publica de AsistencIAU.
+
+Parameters:
+  Proyecto:
+    Type: String
+  Ambiente:
+    Type: String
+  NombreRol:
+    Type: String
+    AllowedValues: [frontend, backend]
+  UbuntuAmi:
+    Type: AWS::EC2::Image::Id
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+  SecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+
+Resources:
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref UbuntuAmi
+      InstanceType: t3.micro
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref SubnetId
+          GroupSet:
+            - !Ref SecurityGroupId
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            Encrypted: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${Proyecto}-${Ambiente}-${NombreRol}"
+        - Key: Proyecto
+          Value: !Ref Proyecto
+        - Key: Ambiente
+          Value: !Ref Ambiente
+
+Outputs:
+  InstanceId:
+    Description: Identificador de la instancia
+    Value: !Ref Instance
+  PublicIp:
+    Description: IP publica de la instancia
+    Value: !GetAtt Instance.PublicIp

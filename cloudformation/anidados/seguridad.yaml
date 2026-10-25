@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Clave SSH y grupos de seguridad para los servidores.
+
+Parameters:
+  Proyecto:
+    Type: String
+  Ambiente:
+    Type: String
+  LlavePublica:
+    Type: String
+    NoEcho: true
+    Description: Contenido de la clave SSH publica del administrador
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  AdminCidr:
+    Type: String
+    Description: IP publica del administrador en formato CIDR /32 para SSH
+    AllowedPattern: ^\d{1,3}(\.\d{1,3}){3}/32$
+    ConstraintDescription: Debe ser una direccion IPv4 con mascara /32.
+
+Resources:
+  LlaveSSH:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: !Sub "${Proyecto}-${Ambiente}-cfn-key"
+      PublicKeyMaterial: !Ref LlavePublica
+      Tags:
+        - Key: Proyecto
+          Value: !Ref Proyecto
+        - Key: Ambiente
+          Value: !Ref Ambiente
+
+  FrontendSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Frontend - SSH administrativo, HTTP y HTTPS publicos
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AdminCidr
+          Description: SSH administrativo
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP publico
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS publico
+      Tags:
+        - Key: Name
+          Value: !Sub "${Proyecto}-${Ambiente}-frontend-sg"
+        - Key: Proyecto
+          Value: !Ref Proyecto
+        - Key: Ambiente
+          Value: !Ref Ambiente
+
+  BackendSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Backend - SSH administrativo y web solo desde frontend
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AdminCidr
+          Description: SSH administrativo
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref FrontendSG
+          Description: HTTP desde frontend
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref FrontendSG
+          Description: HTTPS desde frontend
+      Tags:
+        - Key: Name
+          Value: !Sub "${Proyecto}-${Ambiente}-backend-sg"
+        - Key: Proyecto
+          Value: !Ref Proyecto
+        - Key: Ambiente
+          Value: !Ref Ambiente
+
+Outputs:
+  KeyName:
+    Description: Nombre de la clave SSH
+    Value: !Ref LlaveSSH
+  FrontendSecurityGroupId:
+    Description: Identificador del grupo de seguridad frontend
+    Value: !Ref FrontendSG
+  BackendSecurityGroupId:
+    Description: Identificador del grupo de seguridad backend
+    Value: !Ref BackendSG
